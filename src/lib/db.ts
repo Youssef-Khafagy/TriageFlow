@@ -21,6 +21,7 @@ export async function ensureTables() {
         address TEXT,      -- NEW Persistent Field
         allergies TEXT,    -- NEW Persistent Field
         disabilities TEXT, -- NEW Persistent Field
+        room_number TEXT, -- NEW: Dynamic assignment
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;

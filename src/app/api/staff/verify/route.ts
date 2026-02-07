@@ -3,22 +3,34 @@ import sql from '@/lib/db';
 
 export async function PATCH(req: Request) {
   try {
-    const { sessionId, urgency, notes, status } = await req.json();
+    const {
+      sessionId,
+      status,
+      roomNumber,
+      urgency,
+      notes
+    } = await req.json();
 
-    // Use the status provided (READY or COMPLETED), defaulting to READY if not specified
+    // 🛡️ Preserve old behavior:
+    // - Default status to READY if not provided
     const finalStatus = status || 'READY';
 
     await sql`
-      UPDATE triage_sessions 
-      SET status = ${finalStatus}, 
-          urgency_score = ${urgency}, 
-          summary = ${notes}
+      UPDATE triage_sessions
+      SET
+        status = ${finalStatus},
+        room_number = ${roomNumber ?? null},
+        urgency_score = ${urgency},
+        summary = ${notes}
       WHERE id = ${sessionId}
     `;
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Update error:", error);
-    return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Update failed" },
+      { status: 500 }
+    );
   }
 }

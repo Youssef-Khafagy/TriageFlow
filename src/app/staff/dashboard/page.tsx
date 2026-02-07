@@ -43,7 +43,7 @@ export default function StaffDashboard() {
     }
   };
 
-  // ✅ NEW: Send patient to room
+  // ✅ Send patient to room
   const handleSendToRoom = async (sessionId: string) => {
     try {
       await fetch('/api/staff/verify', {
@@ -57,10 +57,7 @@ export default function StaffDashboard() {
   };
 
   const filteredSessions = sessions.filter((s: any) => {
-    // Archive View
     if (filterStatus === 'ARCHIVED') return s.status === 'COMPLETED';
-    
-    // Hide completed from active feeds
     if (s.status === 'COMPLETED') return false;
 
     const statusMatch = filterStatus === 'ALL' || s.status === filterStatus;
@@ -68,11 +65,11 @@ export default function StaffDashboard() {
     const searchMatch =
       s.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
       s.category?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return statusMatch && urgencyMatch && searchMatch;
   });
 
-  // ✅ Identify first READY patient (FIFO based on current order)
+  // ✅ FIFO: first READY only
   const firstReadySessionId =
     filteredSessions.find(s => s.status === 'READY')?.id;
 
@@ -94,11 +91,14 @@ export default function StaffDashboard() {
         {/* Header */}
         <div className="flex justify-between items-end mb-8">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">Live Triage Feed</h1>
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+              Live Triage Feed
+            </h1>
             <p className="text-gray-500 font-medium">
               Monitor incoming patient intake and verify clinical reports.
             </p>
           </div>
+
           <div className="relative">
             <Search className="absolute left-3 top-3 text-gray-400" size={18} />
             <input 
@@ -116,7 +116,7 @@ export default function StaffDashboard() {
             <Filter size={18} className="text-gray-400" />
             <span className="text-sm font-bold text-gray-700">Display:</span>
           </div>
-          
+
           <select
             className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold outline-none cursor-pointer"
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -151,6 +151,7 @@ export default function StaffDashboard() {
                 <th className="p-6 text-right">Action</th>
               </tr>
             </thead>
+
             <tbody className="divide-y">
               {filteredSessions.map((s: any) => (
                 <tr
@@ -199,17 +200,16 @@ export default function StaffDashboard() {
                     )}
                   </td>
 
-                  {/* ✅ Action Logic */}
+                  {/* ✅ Integrated Action Cell */}
                   <td className="p-6 text-right">
                     <div className="flex justify-end gap-2">
                       <Link
                         href={`/staff/review/${s.id}`}
-                        className="inline-block bg-blue-50 text-blue-600 px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                        className="bg-blue-50 text-blue-600 px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm"
                       >
-                        Review
+                        {s.status === 'IN_ROOM' ? 'Change Room' : 'Review'}
                       </Link>
 
-                      {/* Send to Room: only first READY */}
                       {s.status === 'READY' && s.id === firstReadySessionId && (
                         <button
                           onClick={() => handleSendToRoom(s.id)}
@@ -219,7 +219,6 @@ export default function StaffDashboard() {
                         </button>
                       )}
 
-                      {/* Complete: READY or IN_ROOM */}
                       {(s.status === 'READY' || s.status === 'IN_ROOM') && (
                         <button
                           onClick={() => handleComplete(s)}

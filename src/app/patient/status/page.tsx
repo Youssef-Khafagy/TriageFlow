@@ -26,7 +26,7 @@ export default function PatientStatus() {
         setTimeout(() => router.push('/'), 4000);
       }
 
-      // ✅ NEW: IN_ROOM handling
+      // ✅ IN_ROOM handling (preserves room_number)
       if (current?.status === 'IN_ROOM') {
         setSession(current);
         return;
@@ -34,7 +34,7 @@ export default function PatientStatus() {
 
       setSession(current);
 
-      // Queue logic remains untouched
+      // 🟢 Queue logic (unchanged)
       if (current && current.status === 'READY') {
         const readyQueue = allSessions.filter((s: any) => s.status === 'READY');
         const myIndex = readyQueue.findIndex((s: any) => s.id === sid);
@@ -69,7 +69,7 @@ export default function PatientStatus() {
     );
   }
 
-  // ✅ Completion Toast
+  // ✅ Completion Toast (unchanged)
   if (showToast) {
     return (
       <div className="h-screen flex flex-col items-center justify-center p-6 bg-white">
@@ -82,19 +82,37 @@ export default function PatientStatus() {
     );
   }
 
-  // ✅ NEW: IN ROOM SCREEN
+  // ✅ UPDATED: IN ROOM SCREEN (new card-style UI)
   if (session?.status === 'IN_ROOM') {
     return (
-      <div className="min-h-screen bg-blue-600 flex flex-col items-center justify-center p-6 text-center text-white">
-        <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-8 animate-pulse">
-          <UserCheck size={50} />
-        </div>
-        <h1 className="text-4xl font-black mb-4">It is your turn!</h1>
-        <div className="bg-white text-blue-600 p-8 rounded-[40px] shadow-2xl">
-          <p className="text-xl font-bold mb-2">Please proceed to:</p>
-          <div className="text-6xl font-black tracking-tighter">Room 119</div>
-          <p className="mt-4 text-sm font-medium opacity-70">
-            A healthcare provider is ready for your care.
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-white rounded-[40px] shadow-2xl p-12 max-w-lg border border-blue-100 flex flex-col items-center gap-6 animate-in zoom-in duration-500">
+          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+            <UserCheck size={40} />
+          </div>
+
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
+              It is your turn!
+            </h1>
+            <p className="text-gray-500 font-medium">
+              Please proceed to the station below.
+            </p>
+          </div>
+
+          <div className="w-full bg-blue-600 p-8 rounded-3xl text-white shadow-lg shadow-blue-200">
+            <div className="text-xs font-black uppercase tracking-widest opacity-70 mb-1">
+              Assigned Location
+            </div>
+            <div className="text-6xl font-black">
+              {session.room_number
+                ? `Room ${session.room_number}`
+                : 'Main Care Station'}
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-400 italic">
+            A healthcare provider is waiting for you.
           </p>
         </div>
       </div>
