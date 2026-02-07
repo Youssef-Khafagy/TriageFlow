@@ -2,12 +2,13 @@
 import { useEffect, useState } from 'react';
 import UrgencyBadge from '@/components/UrgencyBadge';
 import Link from 'next/link';
-import { Filter, Search, CheckCircle, Clock } from 'lucide-react';
+import { Filter, Search, CheckCircle, Clock, Archive, AlertTriangle } from 'lucide-react';
 
 export default function StaffDashboard() {
-  const [sessions, setSessions] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, SUBMITTED (Pending), READY (Verified)
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [filterStatus, setFilterStatus] = useState('ALL'); 
   const [filterUrgency, setFilterUrgency] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchSessions = async () => {
     try {
@@ -21,7 +22,6 @@ export default function StaffDashboard() {
 
   useEffect(() => {
     fetchSessions();
-    // Poll every 5 seconds for live updates
     const interval = setInterval(fetchSessions, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -32,58 +32,103 @@ export default function StaffDashboard() {
         method: 'PATCH',
         body: JSON.stringify({ 
           sessionId: session.id, 
-          status: 'COMPLETED', // This marks them as done
+          status: 'COMPLETED', 
           urgency: session.urgency_score,
           notes: session.summary 
         })
       });
-      if (res.ok) {
-        // Immediately refresh the list so the UI updates
-        fetchSessions();
-      }
+      if (res.ok) fetchSessions();
     } catch (error) {
       console.error("Error completing session:", error);
     }
   };
 
+  // ✅ NEW: Send patient to room
+  const handleSendToRoom = async (sessionId: string) => {
+    try {
+      await fetch('/api/staff/verify', {
+        method: 'PATCH',
+        body: JSON.stringify({ sessionId, status: 'IN_ROOM' })
+      });
+      fetchSessions();
+    } catch (error) {
+      console.error("Error sending patient to room:", error);
+    }
+  };
+
   const filteredSessions = sessions.filter((s: any) => {
-    // We only want to show patients currently in the intake or waiting phase
-    // COMPLETED patients should be hidden from the live feed
+    // Archive View
+    if (filterStatus === 'ARCHIVED') return s.status === 'COMPLETED';
+    
+    // Hide completed from active feeds
     if (s.status === 'COMPLETED') return false;
 
     const statusMatch = filterStatus === 'ALL' || s.status === filterStatus;
     const urgencyMatch = filterUrgency === 'ALL' || s.urgency_score === filterUrgency;
-    return statusMatch && urgencyMatch;
+    const searchMatch =
+      s.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.category?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return statusMatch && urgencyMatch && searchMatch;
   });
+
+  // ✅ Identify first READY patient (FIFO based on current order)
+  const firstReadySessionId =
+    filteredSessions.find(s => s.status === 'READY')?.id;
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
+      <style jsx global>{`
+        @keyframes pulse-red-bg {
+          0% { background-color: rgba(254, 226, 226, 1); }
+          50% { background-color: rgba(254, 202, 202, 1); }
+          100% { background-color: rgba(254, 226, 226, 1); }
+        }
+        .animate-critical {
+          animation: pulse-red-bg 2s infinite ease-in-out;
+          border-left: 6px solid #dc2626 !important;
+        }
+      `}</style>
+
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <div className="flex justify-between items-end mb-8">
           <div>
             <h1 className="text-3xl font-black text-gray-900 tracking-tight">Live Triage Feed</h1>
-            <p className="text-gray-500">Monitor incoming patient intake and verify clinical reports.</p>
+            <p className="text-gray-500 font-medium">
+              Monitor incoming patient intake and verify clinical reports.
+            </p>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+            <input 
+              className="pl-10 pr-4 py-2 bg-white border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 w-64"
+              placeholder="Search patients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
         </div>
 
-        {/* Filter Bar */}
+        {/* Filters */}
         <div className="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-center border">
           <div className="flex items-center gap-2 px-3 border-r pr-6">
             <Filter size={18} className="text-gray-400" />
             <span className="text-sm font-bold text-gray-700">Display:</span>
           </div>
           
-          <select 
-            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold focus:ring-2 focus:ring-blue-500 outline-none border-none cursor-pointer"
+          <select
+            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold outline-none cursor-pointer"
             onChange={(e) => setFilterStatus(e.target.value)}
           >
-            <option value="ALL">All Statuses</option>
-            <option value="SUBMITTED">Pending Verification</option>
+            <option value="ALL">Live Feed (Active)</option>
+            <option value="SUBMITTED">Pending Review</option>
             <option value="READY">Verified</option>
+            <option value="ARCHIVED">Archived / Completed</option>
           </select>
 
-          <select 
-            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold focus:ring-2 focus:ring-blue-500 outline-none border-none cursor-pointer"
+          <select
+            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold outline-none cursor-pointer"
             onChange={(e) => setFilterUrgency(e.target.value)}
           >
             <option value="ALL">All Urgencies</option>
@@ -94,6 +139,7 @@ export default function StaffDashboard() {
           </select>
         </div>
 
+        {/* Table */}
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border">
           <table className="w-full text-left">
             <thead className="bg-gray-50 border-b">
@@ -106,58 +152,86 @@ export default function StaffDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filteredSessions.length > 0 ? (
-                filteredSessions.map((s: any) => (
-                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-6 text-sm font-medium text-gray-600">
-                      {new Date(s.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="p-6"><UrgencyBadge level={s.urgency_score} /></td>
-                    <td className="p-6">
-                      <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
-                        {s.category || 'General'}
+              {filteredSessions.map((s: any) => (
+                <tr
+                  key={s.id}
+                  className={`transition-colors hover:bg-gray-50 ${
+                    s.urgency_score === '1' ? 'animate-critical' : ''
+                  }`}
+                >
+                  <td className="p-6 text-sm font-bold text-gray-600 flex items-center gap-2">
+                    {s.urgency_score === '1' && (
+                      <AlertTriangle size={16} className="text-red-600 animate-pulse" />
+                    )}
+                    {new Date(s.created_at).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </td>
+
+                  <td className="p-6">
+                    <UrgencyBadge level={s.urgency_score} />
+                  </td>
+
+                  <td className="p-6">
+                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-black uppercase">
+                      {s.category || 'General'}
+                    </span>
+                  </td>
+
+                  <td className="p-6">
+                    {s.status === 'READY' ? (
+                      <span className="flex items-center gap-1.5 text-green-600 text-xs font-bold uppercase">
+                        <CheckCircle size={14} /> Verified
                       </span>
-                    </td>
-                    <td className="p-6">
-                      {s.status === 'READY' ? (
-                        <span className="flex items-center gap-1.5 text-green-600 text-xs font-bold uppercase tracking-tight">
-                          <CheckCircle size={14} /> Verified
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1.5 text-amber-500 text-xs font-bold uppercase tracking-tight">
-                          <Clock size={14} /> Pending Review
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-6 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Link 
-                          href={`/staff/review/${s.id}`} 
-                          className="inline-block bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                    ) : s.status === 'IN_ROOM' ? (
+                      <span className="flex items-center gap-1.5 text-amber-600 text-xs font-bold uppercase">
+                        <Clock size={14} /> In Room
+                      </span>
+                    ) : s.status === 'COMPLETED' ? (
+                      <span className="flex items-center gap-1.5 text-gray-400 text-xs font-bold uppercase">
+                        <Archive size={14} /> Archived
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-amber-500 text-xs font-bold uppercase">
+                        <Clock size={14} /> Pending Review
+                      </span>
+                    )}
+                  </td>
+
+                  {/* ✅ Action Logic */}
+                  <td className="p-6 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/staff/review/${s.id}`}
+                        className="inline-block bg-blue-50 text-blue-600 px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+                      >
+                        Review
+                      </Link>
+
+                      {/* Send to Room: only first READY */}
+                      {s.status === 'READY' && s.id === firstReadySessionId && (
+                        <button
+                          onClick={() => handleSendToRoom(s.id)}
+                          className="bg-amber-500 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-amber-600 transition-all shadow-sm"
                         >
-                          Review
-                        </Link>
-                        
-                        {/* Only show "Complete" button if patient is verified/waiting */}
-                        {s.status === 'READY' && (
-                          <button 
-                            onClick={() => handleComplete(s)}
-                            className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-sm flex items-center gap-1"
-                          >
-                            <CheckCircle size={14} /> Complete
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="p-12 text-center text-gray-400 font-medium italic">
-                    No matching triage records found.
+                          Send to Room
+                        </button>
+                      )}
+
+                      {/* Complete: READY or IN_ROOM */}
+                      {(s.status === 'READY' || s.status === 'IN_ROOM') && (
+                        <button
+                          onClick={() => handleComplete(s)}
+                          className="bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-sm flex items-center gap-1"
+                        >
+                          <CheckCircle size={14} /> Complete
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
-              )}
+              ))}
             </tbody>
           </table>
         </div>

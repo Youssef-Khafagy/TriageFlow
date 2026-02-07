@@ -4,13 +4,12 @@ const sql = postgres(process.env.DATABASE_URL!);
 
 export async function ensureTables() {
   try {
-    // Added patient_email to track report history per user
     await sql`
       CREATE TABLE IF NOT EXISTS triage_sessions (
         id UUID PRIMARY KEY,
         hospital_id TEXT NOT NULL,
         status TEXT DEFAULT 'COLLECTING_INFO',
-        patient_email TEXT,    -- NEW: Associates report with a user account
+        patient_email TEXT,
         urgency_score TEXT,
         category TEXT,
         summary TEXT,
@@ -18,6 +17,10 @@ export async function ensureTables() {
         patient_age TEXT,
         patient_sex TEXT,
         healthcard TEXT,
+        phone TEXT,        -- NEW Persistent Field
+        address TEXT,      -- NEW Persistent Field
+        allergies TEXT,    -- NEW Persistent Field
+        disabilities TEXT, -- NEW Persistent Field
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `;
