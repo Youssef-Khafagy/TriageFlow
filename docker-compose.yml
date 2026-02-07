@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres-mvp:
+    image: postgres:15-alpine
+    container_name: smarttriage-db-mvp
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=triageflow
+    ports:
+      - "5433:5432"  # Changed local port to 5433 to avoid port conflicts
+    volumes:
+      - postgres_mvp_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_mvp_data:
