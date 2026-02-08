@@ -2,44 +2,47 @@
 import { useEffect, useState } from 'react';
 import UrgencyBadge from '@/components/UrgencyBadge';
 import Link from 'next/link';
-import { Filter, Search, CheckCircle, Clock, Archive, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Filter, Search, CheckCircle, Clock, Archive, AlertTriangle, Activity, Users, ClipboardList, DoorOpen } from 'lucide-react';
 
 export default function StaffDashboard() {
   const [sessions, setSessions] = useState<any[]>([]);
-  const [filterStatus, setFilterStatus] = useState('ALL'); 
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [filterUrgency, setFilterUrgency] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loaded, setLoaded] = useState(false);
+  const router = useRouter();
 
-  // ✅ Updated useEffect with async loadData
+  // Role guard
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const response = await fetch('/api/staff/sessions');
-      const data = await response.json();
-      setSessions(data); // Updates the list on the screen
-    } catch (err) {
-      console.error("Live feed error:", err);
-    }
-  };
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) { router.replace('/staff/login'); return; }
+    const parsed = JSON.parse(storedUser);
+    if (parsed.role !== 'staff') { router.replace('/patient/portal'); return; }
+  }, [router]);
 
-  fetchData(); // Run once immediately when they open the page
-  
-  // This is the "Live Feed" part: it runs every 5 seconds
-  const interval = setInterval(fetchData, 5000); 
-  
-  return () => clearInterval(interval); // Stops the feed if they leave the page
-}, []);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch('/api/staff/sessions');
+        const data = await response.json();
+        setSessions(data);
+        setLoaded(true);
+      } catch (err) {
+        console.error("Live feed error:", err);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleComplete = async (session: any) => {
     try {
       const res = await fetch('/api/staff/verify', {
         method: 'PATCH',
-        body: JSON.stringify({ 
-          sessionId: session.id, 
-          status: 'COMPLETED', 
-          urgency: session.urgency_score,
-          notes: session.summary 
-        })
+        body: JSON.stringify({ sessionId: session.id, status: 'COMPLETED', urgency: session.urgency_score, notes: session.summary })
       });
       if (res.ok) setSessions(prev => prev.filter(s => s.id !== session.id));
     } catch (error) {
@@ -47,7 +50,6 @@ export default function StaffDashboard() {
     }
   };
 
-  // ✅ Send patient to room
   const handleSendToRoom = async (sessionId: string) => {
     try {
       await fetch('/api/staff/verify', {
@@ -63,180 +65,159 @@ export default function StaffDashboard() {
   const filteredSessions = sessions.filter((s: any) => {
     if (filterStatus === 'ARCHIVED') return s.status === 'COMPLETED';
     if (s.status === 'COMPLETED') return false;
-
     const statusMatch = filterStatus === 'ALL' || s.status === filterStatus;
     const urgencyMatch = filterUrgency === 'ALL' || s.urgency_score === filterUrgency;
     const searchMatch =
-      s.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      s.patient_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.category?.toLowerCase().includes(searchTerm.toLowerCase());
-
     return statusMatch && urgencyMatch && searchMatch;
   });
 
-  // ✅ FIFO: first READY only
-  const firstReadySessionId =
-    filteredSessions.find(s => s.status === 'READY')?.id;
+  const firstReadySessionId = filteredSessions.find(s => s.status === 'READY')?.id;
+
+  // Accurate counts from ALL sessions (not filtered)
+  const pendingReview = sessions.filter(s => s.status === 'SUBMITTED').length;
+  const inQueue = sessions.filter(s => s.status === 'READY').length;
+  const inRoom = sessions.filter(s => s.status === 'IN_ROOM').length;
+
+  const formatTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <style jsx global>{`
-        @keyframes pulse-red-bg {
-          0% { background-color: rgba(254, 226, 226, 1); }
-          50% { background-color: rgba(254, 202, 202, 1); }
-          100% { background-color: rgba(254, 226, 226, 1); }
-        }
-        .animate-critical {
-          animation: pulse-red-bg 2s infinite ease-in-out;
-          border-left: 6px solid #dc2626 !important;
-        }
-      `}</style>
-
+    <div className="min-h-[calc(100vh-64px)] p-6 md:p-8" style={{ background: 'var(--bg-base)' }}>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-              Live Triage Feed
-            </h1>
-            <p className="text-gray-500 font-medium">
-              Monitor incoming patient intake and verify clinical reports.
-            </p>
+            <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>Live Triage Feed</h1>
+            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Monitor incoming patient intake and verify clinical reports.</p>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
+            <input className="pl-9 pr-4 py-2 rounded-xl text-sm outline-none w-full md:w-60 border transition-colors" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} placeholder="Search patients..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          </div>
+        </div>
+
+        {/* ═══ 3 STAT BOXES ═══ */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(217,119,6,0.12)' }}>
+                <ClipboardList size={18} className="text-amber-500" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Pending Review</span>
+            </div>
+            <div className="text-3xl font-bold text-amber-500" style={{ fontFamily: 'var(--font-display)' }}>{pendingReview}</div>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input 
-              className="pl-10 pr-4 py-2 bg-white border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 w-64"
-              placeholder="Search patients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'rgba(5,150,105,0.12)' }}>
+                <Users size={18} className="text-emerald-500" />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>In Queue</span>
+            </div>
+            <div className="text-3xl font-bold text-emerald-500" style={{ fontFamily: 'var(--font-display)' }}>{inQueue}</div>
+          </div>
+
+          <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'var(--color-primary-light)' }}>
+                <DoorOpen size={18} style={{ color: 'var(--color-primary)' }} />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>In Room</span>
+            </div>
+            <div className="text-3xl font-bold" style={{ fontFamily: 'var(--font-display)', color: 'var(--color-primary)' }}>{inRoom}</div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-2xl shadow-sm mb-6 flex flex-wrap gap-4 items-center border">
-          <div className="flex items-center gap-2 px-3 border-r pr-6">
-            <Filter size={18} className="text-gray-400" />
-            <span className="text-sm font-bold text-gray-700">Display:</span>
+        <div className="p-3 rounded-xl mb-4 flex flex-wrap gap-3 items-center border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+          <div className="flex items-center gap-1.5 px-3 pr-4" style={{ borderRight: '1px solid var(--border-color)' }}>
+            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+            <span className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>Filter</span>
           </div>
-
-          <select
-            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold outline-none cursor-pointer"
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="ALL">Live Feed (Active)</option>
+          <select className="text-xs rounded-lg px-3 py-1.5 font-semibold outline-none cursor-pointer border" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="ALL">Active Feed</option>
             <option value="SUBMITTED">Pending Review</option>
             <option value="READY">Verified</option>
-            <option value="ARCHIVED">Archived / Completed</option>
+            <option value="ARCHIVED">Archived</option>
           </select>
-
-          <select
-            className="text-sm bg-gray-100 rounded-lg px-4 py-2 font-semibold outline-none cursor-pointer"
-            onChange={(e) => setFilterUrgency(e.target.value)}
-          >
+          <select className="text-xs rounded-lg px-3 py-1.5 font-semibold outline-none cursor-pointer border" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} onChange={(e) => setFilterUrgency(e.target.value)}>
             <option value="ALL">All Urgencies</option>
-            <option value="1">Level 1: Emergent</option>
-            <option value="2">Level 2: Urgent</option>
-            <option value="3">Level 3: Moderate</option>
-            <option value="4">Level 4: Low</option>
+            <option value="1">Emergent</option>
+            <option value="2">Urgent</option>
+            <option value="3">Moderate</option>
+            <option value="4">Low</option>
           </select>
+          <div className="ml-auto flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Live · {sessions.length} total
+          </div>
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 border-b">
-              <tr className="text-xs uppercase tracking-widest text-gray-400 font-black">
-                <th className="p-6">Arrival</th>
-                <th className="p-6">Urgency</th>
-                <th className="p-6">Category</th>
-                <th className="p-6">Status</th>
-                <th className="p-6 text-right">Action</th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y">
-              {filteredSessions.map((s: any) => (
-                <tr
-                  key={s.id}
-                  className={`transition-colors hover:bg-gray-50 ${
-                    s.urgency_score === '1' ? 'animate-critical' : ''
-                  }`}
-                >
-                  <td className="p-6 text-sm font-bold text-gray-600 flex items-center gap-2">
-                    {s.urgency_score === '1' && (
-                      <AlertTriangle size={16} className="text-red-600 animate-pulse" />
-                    )}
-                    {new Date(s.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </td>
-
-                  <td className="p-6">
-                    <UrgencyBadge level={s.urgency_score} />
-                  </td>
-
-                  <td className="p-6">
-                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-black uppercase">
-                      {s.category || 'General'}
-                    </span>
-                  </td>
-
-                  <td className="p-6">
-                    {s.status === 'READY' ? (
-                      <span className="flex items-center gap-1.5 text-green-600 text-xs font-bold uppercase">
-                        <CheckCircle size={14} /> Verified
-                      </span>
-                    ) : s.status === 'IN_ROOM' ? (
-                      <span className="flex items-center gap-1.5 text-amber-600 text-xs font-bold uppercase">
-                        <Clock size={14} /> In Room
-                      </span>
-                    ) : s.status === 'COMPLETED' ? (
-                      <span className="flex items-center gap-1.5 text-gray-400 text-xs font-bold uppercase">
-                        <Archive size={14} /> Archived
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 text-amber-500 text-xs font-bold uppercase">
-                        <Clock size={14} /> Pending Review
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Action Cell */}
-                  <td className="p-6 text-right">
-                    <div className="flex justify-end gap-2">
-                      <Link
-                        href={`/staff/review/${s.id}`}
-                        className="bg-blue-50 text-blue-600 px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-                      >
-                        {s.status === 'IN_ROOM' ? 'Change Room' : 'Review'}
-                      </Link>
-
-                      {s.status === 'READY' && s.id === firstReadySessionId && (
-                        <button
-                          onClick={() => handleSendToRoom(s.id)}
-                          className="bg-amber-500 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-amber-600 transition-all shadow-sm"
-                        >
-                          Send to Room
-                        </button>
-                      )}
-
-                      {(s.status === 'READY' || s.status === 'IN_ROOM') && (
-                        <button
-                          onClick={() => handleComplete(s)}
-                          className="bg-green-600 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-green-700 transition-all shadow-sm flex items-center gap-1"
-                        >
-                          <CheckCircle size={14} /> Complete
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <div className="rounded-2xl overflow-hidden border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+          {filteredSessions.length === 0 ? (
+            <div className="py-16 text-center">
+              <Users className="mx-auto mb-3" size={40} style={{ color: 'var(--text-muted)' }} />
+              <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{loaded ? 'No patients matching filters' : 'Loading...'}</p>
+            </div>
+          ) : (
+            <table className="w-full text-left">
+              <thead style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <tr className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'var(--text-muted)' }}>
+                  <th className="px-5 py-3">Patient</th>
+                  <th className="px-5 py-3">Urgency</th>
+                  <th className="px-5 py-3">Category</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredSessions.map((s: any) => (
+                  <tr key={s.id} className={`transition-all hover:brightness-95 ${s.urgency_score === '1' ? 'animate-critical-row' : ''}`} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        {s.urgency_score === '1' && <AlertTriangle size={14} className="text-red-500 animate-pulse flex-shrink-0" />}
+                        <div>
+                          <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{s.patient_name || 'Unknown'}</div>
+                          <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{formatTime(s.created_at)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4"><UrgencyBadge level={s.urgency_score} /></td>
+                    <td className="px-5 py-4">
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-semibold" style={{ background: 'var(--bg-input)', color: 'var(--text-secondary)' }}>{s.category || 'General'}</span>
+                    </td>
+                    <td className="px-5 py-4">
+                      {s.status === 'READY' ? (
+                        <span className="flex items-center gap-1 text-emerald-500 text-[11px] font-bold"><CheckCircle size={13} /> Verified</span>
+                      ) : s.status === 'IN_ROOM' ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: 'var(--color-primary)' }}><Activity size={13} /> In Room</span>
+                      ) : s.status === 'COMPLETED' ? (
+                        <span className="flex items-center gap-1 text-[11px] font-bold" style={{ color: 'var(--text-muted)' }}><Archive size={13} /> Archived</span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-amber-500 text-[11px] font-bold"><Clock size={13} /> Pending</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <Link href={`/staff/review/${s.id}`} className="px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all hover:brightness-110" style={{ borderColor: 'var(--border-color)', color: 'var(--color-primary)', background: 'var(--color-primary-light)' }}>
+                          Review
+                        </Link>
+                        {s.status === 'READY' && s.id === firstReadySessionId && (
+                          <button onClick={() => handleSendToRoom(s.id)} className="bg-amber-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-600 transition-all">Send to Room</button>
+                        )}
+                        {(s.status === 'READY' || s.status === 'IN_ROOM') && (
+                          <button onClick={() => handleComplete(s)} className="bg-emerald-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-emerald-700 transition-all flex items-center gap-1"><CheckCircle size={12} /> Complete</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

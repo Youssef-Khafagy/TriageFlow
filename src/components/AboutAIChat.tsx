@@ -1,80 +1,43 @@
 "use client";
 import { useState } from 'react';
-import { Send, Sparkles, Loader2 } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 
 export default function AboutAIChat() {
-  const [messages, setMessages] = useState([
-    { role: 'model', parts: [{ text: "Hi! I'm TriageFlow's mission assistant. Ask me anything about our vision for healthcare!" }] }
-  ]);
+  const [messages, setMessages] = useState([{ role: 'model', parts: [{ text: "Hi! I'm TriageFlow's mission assistant. Ask me anything about our vision for healthcare!" }] }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   async function sendMessage() {
     if (!input.trim() || isLoading) return;
-    
     const userMsg = { role: 'user', parts: [{ text: input }] };
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
-    const currentInput = input;
+    const ci = input;
     setInput('');
-
     try {
-      const res = await fetch('/api/about/chat', {
-        method: 'POST',
-        body: JSON.stringify({ 
-          message: currentInput,
-          // Gemini expects a specific history format
-          history: messages.slice(0, -1) 
-        })
-      });
-      
+      const res = await fetch('/api/about/chat', { method: 'POST', body: JSON.stringify({ message: ci, history: messages.slice(0, -1) }) });
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'model', parts: [{ text: data.reply }] }]);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (err) { console.error(err); }
+    finally { setIsLoading(false); }
   }
 
   return (
-    <div className="flex flex-col h-[500px] bg-white">
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin scrollbar-thumb-gray-200">
+    <div className="flex flex-col h-[420px]">
+      <div className="flex-1 overflow-y-auto p-5 space-y-3">
         {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium leading-relaxed ${
-              m.role === 'user' 
-                ? 'bg-blue-600 text-white shadow-lg' 
-                : 'bg-gray-100 text-gray-700 border border-gray-200'
-            }`}>
+          <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-up`}>
+            <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'text-white rounded-tr-md shadow-md' : 'rounded-tl-md border'}`}
+              style={m.role === 'user' ? { background: 'var(--color-primary)' } : { background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}>
               {m.parts[0].text}
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 p-4 rounded-3xl animate-pulse text-gray-400">
-              <Loader2 size={18} className="animate-spin" />
-            </div>
-          </div>
-        )}
+        {isLoading && <div className="flex justify-start animate-fade-up"><div className="border px-4 py-3 rounded-2xl rounded-tl-md" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-color)' }}><div className="flex gap-1.5"><span className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-muted)' }} /><span className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '150ms' }} /><span className="w-2 h-2 rounded-full animate-bounce" style={{ background: 'var(--text-muted)', animationDelay: '300ms' }} /></div></div></div>}
       </div>
-      
-      <div className="p-4 bg-gray-50 border-t flex gap-3">
-        <input 
-          className="flex-1 p-4 bg-white border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all" 
-          placeholder="Ask about the team..." 
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-        />
-        <button 
-          onClick={sendMessage}
-          className="bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
-          disabled={isLoading}
-        >
-          <Send size={20} />
-        </button>
+      <div className="p-4 flex gap-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+        <input className="flex-1 px-4 py-2.5 rounded-xl text-sm outline-none border transition-colors" style={{ background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }} placeholder="Ask about the team..." value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendMessage()} />
+        <button onClick={sendMessage} disabled={isLoading} className="text-white p-2.5 rounded-xl transition-colors disabled:opacity-50" style={{ background: 'var(--color-primary)' }}><Send size={17} /></button>
       </div>
     </div>
   );

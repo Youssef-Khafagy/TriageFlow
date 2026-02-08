@@ -1,184 +1,51 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { User, Save, MapPin, Phone, Calendar, VenetianMask } from 'lucide-react';
+import { User, Save, MapPin, Phone, Calendar, CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function Profile() {
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState({
-    firstName: '', 
-    lastName: '', 
-    age: '', 
-    sex: 'Male',
-    phone: '', 
-    address: '', 
-    healthCard: '', 
-    allergies: 'None', 
-    disabilities: 'None'
-  });
+  const [saved, setSaved] = useState(false);
+  const router = useRouter();
+  const [profile, setProfile] = useState({ firstName: '', lastName: '', age: '', sex: 'Male', phone: '', address: '', healthCard: '', allergies: 'None', disabilities: 'None' });
 
   useEffect(() => {
-    // Ensuring localStorage is only accessed on the client side
-    const storedUser = localStorage.getItem('user');
-    const storedProfile = localStorage.getItem('userProfile');
-    if (storedUser) setUser(JSON.parse(storedUser));
-    if (storedProfile) setProfile(JSON.parse(storedProfile));
-  }, []);
+    const u = localStorage.getItem('user');
+    if (u) { const p = JSON.parse(u); if (p.role === 'staff') { router.replace('/staff/dashboard'); return; } setUser(p); }
+    const sp = localStorage.getItem('userProfile');
+    if (sp) setProfile(JSON.parse(sp));
+  }, [router]);
 
-  const saveProfile = () => {
-    localStorage.setItem('userProfile', JSON.stringify(profile));
-    alert("Medical Profile Synchronized to TriageFlow!");
-  };
+  const saveProfile = () => { localStorage.setItem('userProfile', JSON.stringify(profile)); setSaved(true); setTimeout(() => setSaved(false), 2500); };
 
-  if (!user) return <div className="p-20 text-center font-bold text-gray-400">Please login to manage your health profile.</div>;
+  if (!user) return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6" style={{ background: 'var(--bg-base)' }}><p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>Please sign in to manage your health profile.</p></div>;
+
+  const ic = "w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors";
+  const is = { background: 'var(--bg-input)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 py-12 px-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-xl border overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-blue-600 p-8 text-white flex items-center gap-4">
-          <div className="bg-white/20 p-3 rounded-2xl"><User size={32}/></div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight">Personal Health Profile</h1>
-            <p className="opacity-80 text-sm italic">Information shared automatically with the AI Nurse</p>
+    <div className="min-h-[calc(100vh-64px)] p-6 md:p-8" style={{ background: 'var(--bg-base)' }}>
+      <div className="max-w-3xl mx-auto animate-fade-up">
+        <div className="rounded-2xl border overflow-hidden" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+          <div className="p-6 text-white flex items-center gap-4" style={{ background: 'var(--color-primary)' }}>
+            <div className="w-11 h-11 bg-white/20 rounded-xl flex items-center justify-center"><User size={22} /></div>
+            <div><h1 className="text-lg font-bold">Health Profile</h1><p className="text-white/70 text-xs">Shared automatically with the AI Nurse during intake</p></div>
           </div>
-        </div>
-
-        {/* Form Section */}
-        <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* First Name */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">First Name</label>
-            <input 
-              className="w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-              value={profile.firstName} 
-              onChange={e => setProfile({...profile, firstName: e.target.value})} 
-              placeholder="John"
-            />
+          <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>First Name</label><input className={ic} style={is} value={profile.firstName} onChange={e => setProfile({...profile, firstName: e.target.value})} placeholder="John" /></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Last Name</label><input className={ic} style={is} value={profile.lastName} onChange={e => setProfile({...profile, lastName: e.target.value})} placeholder="Doe" /></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Age</label><div className="relative"><Calendar size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input type="number" className={`${ic} pl-10`} style={is} value={profile.age} onChange={e => setProfile({...profile, age: e.target.value})} placeholder="25" /></div></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Biological Sex</label><select className={`${ic} cursor-pointer`} style={is} value={profile.sex} onChange={e => setProfile({...profile, sex: e.target.value})}><option>Male</option><option>Female</option><option>Other</option></select></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Phone</label><div className="relative"><Phone size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input className={`${ic} pl-10`} style={is} value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} placeholder="(555) 000-0000" /></div></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Healthcard</label><input className={`${ic} font-mono`} style={is} value={profile.healthCard} onChange={e => setProfile({...profile, healthCard: e.target.value})} placeholder="0000-000-000-XX" /></div>
+            <div className="md:col-span-2"><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Address</label><div className="relative"><MapPin size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} /><input className={`${ic} pl-10`} style={is} value={profile.address} onChange={e => setProfile({...profile, address: e.target.value})} placeholder="123 Clinical Way, Toronto, ON" /></div></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2 text-red-400">Allergies</label><select className={`${ic} cursor-pointer`} style={is} value={profile.allergies} onChange={e => setProfile({...profile, allergies: e.target.value})}><option>None</option><option>Peanuts</option><option>Penicillin</option><option>Latex</option><option>Dairy</option></select></div>
+            <div><label className="block text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--color-primary)' }}>Disabilities</label><select className={`${ic} cursor-pointer`} style={is} value={profile.disabilities} onChange={e => setProfile({...profile, disabilities: e.target.value})}><option>None</option><option>Visual Impairment</option><option>Hearing Impairment</option><option>Mobility Issues</option><option>Cognitive</option></select></div>
           </div>
-
-          {/* Last Name */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Last Name</label>
-            <input 
-              className="w-full p-3 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-              value={profile.lastName} 
-              onChange={e => setProfile({...profile, lastName: e.target.value})} 
-              placeholder="Doe"
-            />
+          <div className="px-6 md:px-8 py-5 border-t flex items-center justify-end gap-3" style={{ borderColor: 'var(--border-color)' }}>
+            {saved && <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-500 animate-fade-up"><CheckCircle size={15} /> Saved</span>}
+            <button onClick={saveProfile} className="flex items-center gap-2 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]" style={{ background: 'var(--color-primary)' }}><Save size={16} /> Save Profile</button>
           </div>
-
-          {/* Age Field */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Age</label>
-            <div className="relative">
-              <Calendar size={16} className="absolute left-3 top-4 text-gray-400"/>
-              <input 
-                type="number" 
-                className="w-full p-3 pl-10 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                value={profile.age} 
-                onChange={e => setProfile({...profile, age: e.target.value})} 
-                placeholder="25"
-              />
-            </div>
-          </div>
-
-          {/* Biological Sex */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Biological Sex</label>
-            <div className="relative">
-              <VenetianMask size={16} className="absolute left-3 top-4 text-gray-400 z-10"/>
-              <select 
-                className="w-full p-3 pl-10 bg-gray-50 border rounded-xl font-semibold outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer" 
-                value={profile.sex} 
-                onChange={e => setProfile({...profile, sex: e.target.value})}
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Phone Number */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Phone Number</label>
-            <div className="relative">
-              <Phone size={16} className="absolute left-3 top-4 text-gray-400"/>
-              <input 
-                className="w-full p-3 pl-10 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                value={profile.phone} 
-                onChange={e => setProfile({...profile, phone: e.target.value})} 
-                placeholder="(555) 000-0000"
-              />
-            </div>
-          </div>
-
-          {/* Healthcard Number */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Healthcard Number</label>
-            <input 
-              className="w-full p-3 bg-gray-50 border rounded-xl font-mono focus:ring-2 focus:ring-blue-500 outline-none" 
-              value={profile.healthCard} 
-              onChange={e => setProfile({...profile, healthCard: e.target.value})} 
-              placeholder="0000-000-000-XX"
-            />
-          </div>
-
-          {/* Home Address */}
-          <div className="md:col-span-2">
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2">Home Address</label>
-            <div className="relative">
-              <MapPin size={16} className="absolute left-3 top-4 text-gray-400"/>
-              <input 
-                className="w-full p-3 pl-10 bg-gray-50 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                value={profile.address} 
-                onChange={e => setProfile({...profile, address: e.target.value})} 
-                placeholder="123 Clinical Way, Toronto, ON"
-              />
-            </div>
-          </div>
-          
-          {/* Allergies Dropdown */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2 text-red-500 font-bold">Known Allergies</label>
-            <select 
-              className="w-full p-3 bg-gray-50 border rounded-xl font-semibold outline-none focus:ring-2 focus:ring-red-500 cursor-pointer" 
-              value={profile.allergies} 
-              onChange={e => setProfile({...profile, allergies: e.target.value})}
-            >
-              <option>None</option>
-              <option>Peanuts</option>
-              <option>Penicillin</option>
-              <option>Latex</option>
-              <option>Dairy</option>
-            </select>
-          </div>
-
-          {/* Disabilities Dropdown */}
-          <div>
-            <label className="block text-xs font-black uppercase text-gray-400 mb-2 text-blue-500 font-bold">Disabilities</label>
-            <select 
-              className="w-full p-3 bg-gray-50 border rounded-xl font-semibold outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer" 
-              value={profile.disabilities} 
-              onChange={e => setProfile({...profile, disabilities: e.target.value})}
-            >
-              <option>None</option>
-              <option>Visual Impairment</option>
-              <option>Hearing Impairment</option>
-              <option>Mobility Issues</option>
-              <option>Cognitive</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Action Footer */}
-        <div className="p-8 bg-gray-50 border-t flex justify-end">
-          <button 
-            onClick={saveProfile} 
-            className="flex items-center gap-2 bg-blue-600 text-white px-10 py-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95"
-          >
-            <Save size={20}/> Sync to TriageFlow
-          </button>
         </div>
       </div>
     </div>

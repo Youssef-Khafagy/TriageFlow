@@ -1,51 +1,49 @@
 "use client";
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { PlusCircle, History, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { PlusCircle, History, Lock, ArrowRight } from 'lucide-react';
 
 export default function PatientPortal() {
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) setUser(JSON.parse(storedUser));
-  }, []);
+    const stored = localStorage.getItem('user');
+    if (stored) { const p = JSON.parse(stored); if (p.role === 'staff') { router.replace('/staff/dashboard'); return; } setUser(p); }
+    setLoading(false);
+  }, [router]);
+
+  if (loading) return null;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 p-8 flex flex-col items-center justify-center">
-      <div className="max-w-4xl w-full">
-        <h1 className="text-3xl font-black text-gray-900 mb-2">Patient Portal</h1>
-        <p className="text-gray-500 mb-10">Manage your ER intake reports and history.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Box 1: Create New Report */}
-          <Link href="/patient/chat" className="group bg-white p-8 rounded-3xl border-2 border-transparent hover:border-blue-600 transition-all shadow-sm">
-            <div className="bg-blue-100 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors">
-              <PlusCircle className="text-blue-600 group-hover:text-white" size={32} />
-            </div>
-            <h2 className="text-2xl font-bold mb-2 text-gray-900">Create a New Report</h2>
-            <p className="text-gray-500">Start an AI-guided intake to describe your current symptoms.</p>
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-6" style={{ background: 'var(--bg-base)' }}>
+      <div className="max-w-3xl w-full animate-fade-up">
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>Patient Portal</h1>
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Manage your ER intake reports and start new consultations.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Link href="/patient/chat" className="group rounded-2xl p-8 border transition-all hover:shadow-lg animate-fade-up delay-1" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-colors group-hover:scale-110" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}><PlusCircle size={24} /></div>
+            <h2 className="text-lg font-bold mb-1.5" style={{ color: 'var(--text-primary)' }}>Start New Intake</h2>
+            <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>Begin an AI-guided conversation to describe your symptoms.</p>
+            <span className="inline-flex items-center gap-1 text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>Get started <ArrowRight size={14} /></span>
           </Link>
-
-          {/* Box 2: My Reports */}
           {user ? (
-            <Link href="/patient/reports" className="group bg-white p-8 rounded-3xl border-2 border-transparent hover:border-indigo-600 transition-all shadow-sm">
-              <div className="bg-indigo-100 w-14 h-14 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-indigo-600 transition-colors">
-                <History className="text-indigo-600 group-hover:text-white" size={32} />
-              </div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-900">My Reports</h2>
-              <p className="text-gray-500">View and track your previous triage submissions.</p>
+            <Link href="/patient/reports" className="group rounded-2xl p-8 border transition-all hover:shadow-lg animate-fade-up delay-2" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 bg-indigo-500/10 text-indigo-500 transition-colors group-hover:scale-110"><History size={24} /></div>
+              <h2 className="text-lg font-bold mb-1.5" style={{ color: 'var(--text-primary)' }}>My Reports</h2>
+              <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>View and track your previous triage submissions.</p>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-500">View history <ArrowRight size={14} /></span>
             </Link>
           ) : (
-            <div className="bg-gray-100 p-8 rounded-3xl border-2 border-dashed border-gray-300 relative overflow-hidden grayscale">
-              <div className="bg-gray-200 w-14 h-14 rounded-2xl flex items-center justify-center mb-6">
-                <Lock className="text-gray-400" size={32} />
-              </div>
-              <h2 className="text-2xl font-bold mb-2 text-gray-400">My Reports</h2>
-              <p className="text-gray-400">Login required to view report history.</p>
-              <div className="absolute inset-0 bg-white/40 flex items-center justify-center">
-                <Link href="/login" className="bg-gray-800 text-white px-6 py-2 rounded-xl font-bold text-sm">Login to Unlock</Link>
-              </div>
+            <div className="rounded-2xl p-8 border border-dashed opacity-70 animate-fade-up delay-2" style={{ background: 'var(--bg-surface-hover)', borderColor: 'var(--border-color)' }}>
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-5" style={{ background: 'var(--bg-input)', color: 'var(--text-muted)' }}><Lock size={24} /></div>
+              <h2 className="text-lg font-bold mb-1.5" style={{ color: 'var(--text-muted)' }}>My Reports</h2>
+              <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text-muted)' }}>Login required to view report history.</p>
+              <Link href="/login" className="inline-flex items-center gap-1 text-sm font-semibold px-4 py-2 rounded-lg border transition-all" style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}>Sign in to unlock</Link>
             </div>
           )}
         </div>

@@ -2,41 +2,189 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply transition-colors duration-500 ease-in-out;
-  }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&display=swap');
+
+/* ═══════════════════════════════════════
+   LIGHT MODE (default)
+   ═══════════════════════════════════════ */
+:root {
+  --color-primary: #1e40af;
+  --color-primary-light: #dbeafe;
+  --color-primary-dark: #1e3a8a;
+  --color-primary-glow: rgba(30, 64, 175, 0.15);
+  --color-accent-red: #dc2626;
+  --color-accent-amber: #d97706;
+  --color-accent-green: #059669;
+
+  --bg-base: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-nav: #0f172a;
+  --bg-input: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-light: #f1f5f9;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-on-nav: #e2e8f0;
+  --text-on-nav-muted: #94a3b8;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.08), 0 16px 48px rgba(0,0,0,0.1);
+
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
 }
 
-html, body {
-  background: #020617 !important; /* Matches the darkest part of your gradient */
-  margin: 0;
-  padding: 0;
-  min-height: 100%;
+/* ═══════════════════════════════════════
+   DARK MODE
+   ═══════════════════════════════════════ */
+[data-theme="dark"] {
+  --color-primary: #3b82f6;
+  --color-primary-light: rgba(59, 130, 246, 0.15);
+  --color-primary-dark: #2563eb;
+  --color-primary-glow: rgba(59, 130, 246, 0.2);
+
+  --bg-base: #020617;
+  --bg-surface: #0f172a;
+  --bg-surface-hover: #1e293b;
+  --bg-nav: #020617;
+  --bg-input: #1e293b;
+  --border-color: rgba(255,255,255,0.08);
+  --border-light: rgba(255,255,255,0.04);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-on-nav: #f1f5f9;
+  --text-on-nav-muted: #64748b;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.5);
 }
 
-/* Elite Navy Gradient */
-.dark-theme {
-  background: radial-gradient(circle at 50% -20%, #1e293b, #0f172a, #020617) !important;
-  color: #f8fafc !important;
-  min-height: 100vh;
+/* ═══════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════ */
+* { font-family: var(--font-body); }
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* EKG Heartbeat Line Animation */
-@keyframes ekg-move {
-  0% { stroke-dashoffset: 1000; }
+/* ═══════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════ */
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+main { animation: pageIn 0.4s ease-out; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.5s ease-out both; }
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+.delay-5 { animation-delay: 0.4s; }
+.delay-6 { animation-delay: 0.48s; }
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scaleIn 0.4s ease-out both; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-surface-hover) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ═══════════════════════════════════════
+   EKG Heartbeat
+   ═══════════════════════════════════════ */
+@keyframes ekg-draw {
+  0% { stroke-dashoffset: 2400; }
   100% { stroke-dashoffset: 0; }
 }
+.ekg-line {
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: ekg-draw 4s linear infinite;
+}
+.ekg-line-2 { animation-duration: 5s; animation-delay: 1s; }
+.ekg-line-3 { animation-duration: 6s; animation-delay: 2s; }
 
-.animate-ekg {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: ekg-move 4s linear infinite;
+/* ═══════════════════════════════════════
+   CRITICAL ROW (staff dashboard)
+   ═══════════════════════════════════════ */
+@keyframes pulseCritical {
+  0%, 100% { background-color: rgba(254,226,226,0.6); }
+  50% { background-color: rgba(254,202,202,0.9); }
+}
+[data-theme="dark"] .animate-critical-row {
+  animation: pulseCriticalDark 2s ease-in-out infinite;
+  border-left: 4px solid var(--color-accent-red) !important;
+}
+@keyframes pulseCriticalDark {
+  0%, 100% { background-color: rgba(127,29,29,0.3); }
+  50% { background-color: rgba(127,29,29,0.5); }
+}
+.animate-critical-row {
+  animation: pulseCritical 2s ease-in-out infinite;
+  border-left: 4px solid var(--color-accent-red) !important;
 }
 
-/* Glassmorphism for mission boxes */
-.glass-box {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* ═══════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+/* ═══════════════════════════════════════
+   MARKDOWN REPORT
+   ═══════════════════════════════════════ */
+.markdown-report h1 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  border-bottom: 3px solid var(--color-primary);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.markdown-report h2, .markdown-report strong {
+  color: var(--color-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+}
+.markdown-report hr {
+  border-top: 1.5px solid var(--border-color);
+  margin: 1.5rem 0;
+}
+
+/* ═══════════════════════════════════════
+   PRINT
+   ═══════════════════════════════════════ */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: white !important; color: black !important; }
+  nav { display: none !important; }
 }
