@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import sql, { ensureTables } from '@/lib/db';
 
+// These lines force Vercel to check the database every time
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET() {
-  await ensureTables(); // Add this line
+  await ensureTables(); // Ensures your cloud database has the right tables
   
   try {
     const sessions = await sql`

@@ -12,21 +12,23 @@ export default function StaffDashboard() {
 
   // ✅ Updated useEffect with async loadData
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const response = await fetch('/api/staff/sessions');
-        const data = await response.json();
-        setSessions(data);
-      } catch (error) {
-        console.error("Dashboard Sync Error:", error);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/staff/sessions');
+      const data = await response.json();
+      setSessions(data); // Updates the list on the screen
+    } catch (err) {
+      console.error("Live feed error:", err);
+    }
+  };
 
-    loadData(); // Load immediately
-    const interval = setInterval(loadData, 5000); // Check for new patients every 5 seconds
-
-    return () => clearInterval(interval); // Stop checking if we leave the page
-  }, []);
+  fetchData(); // Run once immediately when they open the page
+  
+  // This is the "Live Feed" part: it runs every 5 seconds
+  const interval = setInterval(fetchData, 5000); 
+  
+  return () => clearInterval(interval); // Stops the feed if they leave the page
+}, []);
 
   const handleComplete = async (session: any) => {
     try {
