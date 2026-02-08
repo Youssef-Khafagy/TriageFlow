@@ -5,7 +5,9 @@ TriageFlow collects patient intake before staff interaction and uses AI to conve
 
 🛑 **AI never makes the final decision.** Every urgency level and triage outcome is confirmed by staff.
 
---- # Getting started (Website)
+--- 
+
+# Getting started (Website)
 
 https://triage-flow-nine.vercel.app/
 
