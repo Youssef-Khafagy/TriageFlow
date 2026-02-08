@@ -2,13 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@layer base {
+  body {
+    @apply transition-colors duration-500 ease-in-out;
+  }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: white;
+html, body {
+  background: #020617 !important; /* Matches the darkest part of your gradient */
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+/* Elite Navy Gradient */
+.dark-theme {
+  background: radial-gradient(circle at 50% -20%, #1e293b, #0f172a, #020617) !important;
+  color: #f8fafc !important;
+  min-height: 100vh;
+}
+
+/* EKG Heartbeat Line Animation */
+@keyframes ekg-move {
+  0% { stroke-dashoffset: 1000; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-ekg {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: ekg-move 4s linear infinite;
+}
+
+/* Glassmorphism for mission boxes */
+.glass-box {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }

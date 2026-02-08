@@ -1,73 +1,103 @@
 "use client";
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { Activity, LogOut, UserCircle, Home, Info, Clipboard, User } from 'lucide-react';
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { 
+  Activity, 
+  LogOut, 
+  User, 
+  Home, 
+  Info, 
+  Clipboard 
+} from "lucide-react";
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
+    const storedUser = localStorage.getItem("user");
     if (storedUser) setUser(JSON.parse(storedUser));
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    window.location.href = '/';
+    localStorage.removeItem("user");
+    window.location.href = "/";
   };
 
   return (
-    <nav className="bg-white border-b sticky top-0 z-50 px-6 h-16 flex items-center justify-between shadow-sm">
+    <nav className="fixed top-0 left-0 right-0 z-[100] bg-[#1e293b]/60 backdrop-blur-xl border-b border-white/5 py-4 px-8 flex items-center justify-between no-print">
+      
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2 group">
+        <Activity className="text-blue-500 group-hover:scale-110 transition-transform" />
+        <span className="text-xl font-black text-white tracking-tighter">
+          TriageFlow
+        </span>
+      </Link>
+
+      {/* Right Side */}
       <div className="flex items-center gap-8">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="bg-blue-600 p-1.5 rounded-lg text-white"><Activity size={20}/></div>
-          <span className="font-bold text-xl tracking-tight">TriageFlow</span>
-        </Link>
 
         {/* Global Links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-gray-500">
-          <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-            <Home size={16}/> Home
+        <div className="hidden md:flex items-center gap-6 text-sm font-bold text-slate-300">
+          <Link href="/" className="flex items-center gap-1 hover:text-white transition-colors">
+            <Home size={16} /> Home
           </Link>
-          <Link href="/about" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-            <Info size={16}/> About
+          <Link href="/about" className="flex items-center gap-1 hover:text-white transition-colors">
+            <Info size={16} /> About
           </Link>
-          {/* Patient Portal Link - Accessible to all to encourage signup */}
-          <Link href="/patient/portal" className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-            <Clipboard size={16}/> Patient Portal
+          <Link href="/patient/portal" className="flex items-center gap-1 hover:text-white transition-colors">
+            <Clipboard size={16} /> Patient Portal
           </Link>
-        </div>
-      </div>
 
-      <div className="flex items-center gap-4">
-        {user ? (
-          <>
-            {/* Staff specific link */}
-            {user.role === 'staff' && (
-              <Link href="/staff/dashboard" className="text-sm font-bold text-blue-600 hover:underline mr-2">
-                Staff Dashboard
-              </Link>
-            )}
-            
-            <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors p-1">
-              <User size={20}/>
+          {/* Staff Shortcut */}
+          {user?.role === "staff" && (
+            <Link
+              href="/staff/dashboard"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              Staff Dashboard
             </Link>
-            
-            <div className="hidden sm:flex flex-col items-end border-l pl-4 ml-2">
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Logged In</span>
-              <span className="text-sm font-bold text-gray-700">{user.email}</span>
+          )}
+        </div>
+
+        {/* Auth Section */}
+        {user ? (
+          <div className="flex items-center gap-4">
+            <Link
+              href="/profile"
+              className="text-slate-300 hover:text-white transition-colors p-1"
+            >
+              <User size={20} />
+            </Link>
+
+            <div className="hidden sm:flex flex-col items-end border-l border-white/10 pl-4">
+              <span className="text-xs font-black text-slate-500 uppercase tracking-widest">
+                Logged In
+              </span>
+              <span className="text-sm font-bold text-slate-300">
+                {user.email}
+              </span>
             </div>
 
-            <button onClick={handleLogout} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors ml-2">
-              <LogOut size={20}/>
+            <button
+              onClick={handleLogout}
+              className="text-red-400 hover:bg-red-500/10 p-2 rounded-lg transition-colors"
+            >
+              <LogOut size={20} />
             </button>
-          </>
+          </div>
         ) : (
           <div className="flex gap-3">
-            <Link href="/login" className="text-sm font-bold text-gray-600 px-4 py-2 hover:text-gray-900 transition-colors">
+            <Link
+              href="/login"
+              className="text-white font-bold text-sm px-4 py-2 hover:opacity-70 transition-all"
+            >
               Login
             </Link>
-            <Link href="/signup" className="bg-blue-600 text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md shadow-blue-100 hover:bg-blue-700 transition-all">
+            <Link
+              href="/signup"
+              className="bg-blue-600 text-white font-bold text-sm px-5 py-2 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-600/20"
+            >
               Sign Up
             </Link>
           </div>
