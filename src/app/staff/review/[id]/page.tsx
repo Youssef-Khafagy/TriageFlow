@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 import UrgencyBadge from '@/components/UrgencyBadge';
-import { ChevronLeft, CheckCircle, Phone, MapPin, DoorOpen } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Phone, MapPin, DoorOpen, Printer } from 'lucide-react';
 
 export default function StaffReview() {
   const { id } = useParams();
@@ -26,7 +27,7 @@ export default function StaffReview() {
       body: JSON.stringify({ 
         sessionId: id, 
         status,
-        roomNumber: room, // persist room assignment
+        roomNumber: room,
         urgency: data.urgency_score,
         notes: data.summary
       })
@@ -36,6 +37,8 @@ export default function StaffReview() {
       router.push('/staff/dashboard');
     }
   }
+
+  const handlePrint = () => window.print();
 
   if (!data) {
     return (
@@ -47,16 +50,47 @@ export default function StaffReview() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-500 mb-6 hover:text-blue-600 font-bold no-print"
-        >
-          <ChevronLeft size={20} /> Back to Dashboard
-        </button>
+      {/* Global print styles and SBAR styling */}
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          body { background: white !important; }
+          .sbar-container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
+        }
 
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border">
-          {/* Header */}
+        /* Elite SBAR Styling */
+        .markdown-report h1 {
+          @apply text-3xl font-black tracking-tighter border-b-4 border-blue-600 pb-2 mb-8;
+        }
+        .markdown-report h2, .markdown-report strong {
+          @apply text-blue-800 font-black uppercase tracking-widest text-sm;
+        }
+        .markdown-report hr {
+          @apply border-t-2 border-gray-100 my-6;
+        }
+      `}</style>
+
+      <div className="max-w-6xl mx-auto">
+        {/* Header Actions */}
+        <div className="flex justify-between items-center mb-6 no-print">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-gray-500 font-bold"
+          >
+            <ChevronLeft size={20} /> Back
+          </button>
+
+          <button 
+            onClick={handlePrint}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all"
+          >
+            <Printer size={20} /> Print SBAR Report
+          </button>
+        </div>
+
+        {/* Main Review Card */}
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border mb-8 no-print">
           <div
             className={`p-6 text-white flex justify-between items-center ${
               data.urgency_score === '1'
@@ -142,6 +176,21 @@ export default function StaffReview() {
                 <CheckCircle size={28} /> Verify & Place in Queue
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Printable SBAR Report */}
+        <div className="bg-white rounded-[40px] shadow-2xl border p-12 sbar-container print-only">
+          {/* Wrap ReactMarkdown in a div to fix className issue */}
+          <div className="prose prose-blue prose-lg max-w-none markdown-report">
+            <ReactMarkdown>
+              {data?.summary}
+            </ReactMarkdown>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-dashed flex justify-between text-xs font-black uppercase text-gray-400">
+            <div>Physician Signature: ______________________</div>
+            <div>Date: {new Date().toLocaleDateString()}</div>
           </div>
         </div>
       </div>

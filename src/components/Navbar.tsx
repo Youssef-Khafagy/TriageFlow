@@ -21,7 +21,7 @@ export default function Navbar() {
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2">
           <div className="bg-blue-600 p-1.5 rounded-lg text-white"><Activity size={20}/></div>
-          <span className="font-bold text-xl tracking-tight">SmartTriage</span>
+          <span className="font-bold text-xl tracking-tight">TriageFlow</span>
         </Link>
 
         {/* Global Links */}
