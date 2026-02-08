@@ -10,20 +10,22 @@ export default function StaffDashboard() {
   const [filterUrgency, setFilterUrgency] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchSessions = async () => {
-    try {
-      const res = await fetch('/api/staff/sessions');
-      const data = await res.json();
-      setSessions(data);
-    } catch (error) {
-      console.error("Dashboard Sync Error:", error);
-    }
-  };
-
+  // ✅ Updated useEffect with async loadData
   useEffect(() => {
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 5000);
-    return () => clearInterval(interval);
+    const loadData = async () => {
+      try {
+        const response = await fetch('/api/staff/sessions');
+        const data = await response.json();
+        setSessions(data);
+      } catch (error) {
+        console.error("Dashboard Sync Error:", error);
+      }
+    };
+
+    loadData(); // Load immediately
+    const interval = setInterval(loadData, 5000); // Check for new patients every 5 seconds
+
+    return () => clearInterval(interval); // Stop checking if we leave the page
   }, []);
 
   const handleComplete = async (session: any) => {
@@ -37,7 +39,7 @@ export default function StaffDashboard() {
           notes: session.summary 
         })
       });
-      if (res.ok) fetchSessions();
+      if (res.ok) setSessions(prev => prev.filter(s => s.id !== session.id));
     } catch (error) {
       console.error("Error completing session:", error);
     }
@@ -50,7 +52,7 @@ export default function StaffDashboard() {
         method: 'PATCH',
         body: JSON.stringify({ sessionId, status: 'IN_ROOM' })
       });
-      fetchSessions();
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: 'IN_ROOM' } : s));
     } catch (error) {
       console.error("Error sending patient to room:", error);
     }
@@ -200,7 +202,7 @@ export default function StaffDashboard() {
                     )}
                   </td>
 
-                  {/* ✅ Integrated Action Cell */}
+                  {/* Action Cell */}
                   <td className="p-6 text-right">
                     <div className="flex justify-end gap-2">
                       <Link
